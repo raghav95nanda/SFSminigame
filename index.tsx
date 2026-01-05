@@ -1,14 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import Lottie, { LottieRefCurrentProps } from 'lottie-react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { 
   IDLE_ANIMATION, 
   JUMP_ANIMATION, 
   TRAMPOLINE_ANIMATION 
 } from './animations/data';
-
-// --- Components ---
 
 enum GameState {
   IDLE,
@@ -25,10 +23,10 @@ const MiniGame: React.FC = () => {
   const trampolineLottieRef = useRef<LottieRefCurrentProps>(null);
   const characterLottieRef = useRef<LottieRefCurrentProps>(null);
 
-  // Constants
-  const LOW_JUMP_Y = -70;
-  const HIGH_JUMP_Y = -350;
-  const IMPACT_Y = 8; // Character sinks into trampoline
+  // Jump height constants
+  const LOW_JUMP_Y = -60;
+  const HIGH_JUMP_Y = -280;
+  const IMPACT_Y = 6;
 
   const handleTrampolineClick = useCallback(async () => {
     if (gameState !== GameState.IDLE) return;
@@ -39,19 +37,17 @@ const MiniGame: React.FC = () => {
 
     setGameState(GameState.IMPACT);
     
-    // Start trampoline animation immediately
+    // Play the trampoline animation immediately
     trampolineLottieRef.current?.goToAndPlay(0);
 
-    // Phase 1: Impact (within 1.33s rule)
-    // Character moves down slightly as trampoline stretches
+    // Initial impact squash
     await charControls.start({
       y: IMPACT_Y,
-      transition: { duration: 0.15, ease: "easeIn" }
+      transition: { duration: 0.2, ease: "easeIn" }
     });
 
-    // Phase 2: Ascent
     setGameState(GameState.ASCENDING);
-    // Force Jump animation to start frame (crouch/ready)
+    // Reset character jump animation to start
     characterLottieRef.current?.goToAndStop(0, true);
 
     const targetY = isHighJump ? HIGH_JUMP_Y : LOW_JUMP_Y;
@@ -65,12 +61,11 @@ const MiniGame: React.FC = () => {
       }
     });
 
-    // Phase 3: Descent (Peak hit)
     setGameState(GameState.DESCENDING);
-    // Play the full jump animation (transformation to down state)
+    // Transform character into falling state
     characterLottieRef.current?.goToAndPlay(0);
 
-    const descentDuration = isHighJump ? 2.2 : 0.6; // High jump "floats" down
+    const descentDuration = isHighJump ? 2.0 : 0.6;
     
     await charControls.start({
       y: 0,
@@ -80,7 +75,6 @@ const MiniGame: React.FC = () => {
       }
     });
 
-    // Reset to Idle
     setGameState(GameState.IDLE);
     if (isHighJump) {
        setBounceCount(0);
@@ -88,16 +82,15 @@ const MiniGame: React.FC = () => {
   }, [gameState, bounceCount, charControls]);
 
   return (
-    <div className="flex flex-col items-center justify-end h-[450px] w-full relative overflow-visible">
-      
+    <div className="flex flex-col items-center justify-end h-[400px] w-full relative overflow-visible">
       {/* Mascot Layer */}
       <motion.div
         animate={charControls}
         initial={{ y: 0 }}
         className="absolute z-20 pointer-events-none"
-        style={{ bottom: '110px' }} 
+        style={{ bottom: '102px' }} 
       >
-        <div className="w-[140px] h-[140px]">
+        <div className="w-[120px] h-[120px]">
           {gameState === GameState.IDLE ? (
             <Lottie 
               lottieRef={characterLottieRef}
@@ -118,7 +111,7 @@ const MiniGame: React.FC = () => {
 
       {/* Trampoline Layer */}
       <div 
-        className="w-full max-w-[240px] cursor-pointer z-10 transition-transform active:scale-[0.97]"
+        className="w-full max-w-[220px] cursor-pointer z-10 transition-transform active:scale-[0.98]"
         onClick={handleTrampolineClick}
       >
         <Lottie 
@@ -130,42 +123,25 @@ const MiniGame: React.FC = () => {
         />
       </div>
 
-      {/* UI Overlay */}
+      {/* Bounce counter */}
       <div className="absolute top-4 w-full flex flex-col items-center pointer-events-none">
-        <div className="text-[10px] font-bold tracking-[0.3em] text-slate-400 uppercase">
-          {bounceCount > 0 ? `Power Level ${bounceCount}/3` : "Click to jump"}
-        </div>
-        <div className="flex gap-1 mt-2">
-           {[1, 2, 3].map(i => (
-             <div 
-               key={i} 
-               className={`h-1 w-8 rounded-full transition-colors duration-300 ${bounceCount >= i ? 'bg-orange-500' : 'bg-slate-200'}`} 
-             />
-           ))}
+        <div className="text-[10px] font-bold tracking-[0.3em] text-slate-300 uppercase">
+          {bounceCount > 0 ? `BOUNCE ${bounceCount}/3` : "Click to start"}
         </div>
       </div>
     </div>
   );
 };
 
-const App: React.FC = () => {
-  return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
-        <MiniGame />
-      </div>
+const App: React.FC = () => (
+  <div className="min-h-screen w-full flex flex-col items-center justify-center p-4">
+    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-4">
+      <MiniGame />
     </div>
-  );
-};
-
-// --- Entry Point ---
+  </div>
+);
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  ReactDOM.createRoot(rootElement).render(<App />);
 }

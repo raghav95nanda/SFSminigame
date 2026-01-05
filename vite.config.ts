@@ -1,14 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Use base: './' or base: '/' depending on your GitHub Pages setup. 
-  // './' is generally safer for browser-based uploads.
+  // Use a relative base path so it works regardless of the GitHub repo name
   base: './',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    // Ensure the build generates clean assets
+    emptyOutDir: true,
   }
 });
